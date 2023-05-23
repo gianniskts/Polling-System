@@ -61,6 +61,9 @@ void workerThread(string poll_log_file) {
             connectionBuffer.pop_back();
         }
         memset(buffer, 0, 256);
+        string request = "SEND NAME PLEASE";
+        write(conn_fd, request.c_str(), request.size());
+
         string name;
         if (read(conn_fd, buffer, 255) < 0)
             continue;
@@ -103,6 +106,7 @@ void workerThread(string poll_log_file) {
         close(conn_fd);
     }
 }
+
 
 
 int main(int argc, char *argv[]) {
