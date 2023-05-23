@@ -60,8 +60,10 @@ void workerThread(string poll_log_file) {
             conn_fd = connectionBuffer.back();
             connectionBuffer.pop_back();
         }
+        cout << "Connection accepted\n";
+        cout << "----------------------------------------\n";
         memset(buffer, 0, 256);
-        string request = "SEND NAME PLEASE: ";
+        string request = "Please Enter Your Name: ";
         write(conn_fd, request.c_str(), request.size());
 
         string name;
@@ -73,13 +75,13 @@ void workerThread(string poll_log_file) {
         {
             unique_lock<mutex> lock(mtx);
             if (voterRecords.find(name) != voterRecords.end()) {
-                response = "ALREADY VOTED\n";
+                response = "Already Voted\n";
                 write(conn_fd, response.c_str(), response.size());
                 close(conn_fd);
                 continue;
             }
             else {
-                response = "SEND VOTE PLEASE: ";
+                response = "Please Enter Your Vote: ";
                 write(conn_fd, response.c_str(), response.size());
             }
         }
@@ -96,12 +98,12 @@ void workerThread(string poll_log_file) {
         ofstream poll_log;
         poll_log.open(poll_log_file, ios_base::app);
         if (!poll_log) {
-            cerr << "Unable to open file: " << poll_log_file << "\n";
+            cerr << "Unable to Open File: " << poll_log_file << "\n";
             exit(1);
         }
         poll_log << name << " " << party << "\n";
         poll_log.close();
-        response = "\nVOTE for Party " + party + " RECORDED\n";
+        response = "\nVote for Party " + party + " recorded\n";
         write(conn_fd, response.c_str(), response.size());
         close(conn_fd);
     }
@@ -133,6 +135,16 @@ int main(int argc, char *argv[]) {
     poll_stats_file = argv[5];
 
     signal(SIGINT, handle_sigint);
+
+    cout << "Starting polling server...\n";
+    cout << "Port number: " << port_num << "\n";
+    cout << "Number of worker threads: " << num_worker_threads << "\n";
+    cout << "Buffer size: " << buffer_size << "\n";
+    cout << "Poll log file: " << poll_log_file << "\n";
+    cout << "Poll stats file: " << poll_stats_file << "\n";
+    cout << "Press Ctrl+C twice to exit.\n";
+    cout << "Waiting for connections...\n";
+    cout << "----------------------------------------\n";
 
     vector<thread> workers;
     for (int i = 0; i < num_worker_threads; i++)
