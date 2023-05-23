@@ -61,7 +61,7 @@ void workerThread(string poll_log_file) {
             connectionBuffer.pop_back();
         }
         memset(buffer, 0, 256);
-        string request = "SEND NAME PLEASE";
+        string request = "SEND NAME PLEASE: ";
         write(conn_fd, request.c_str(), request.size());
 
         string name;
@@ -73,13 +73,13 @@ void workerThread(string poll_log_file) {
         {
             unique_lock<mutex> lock(mtx);
             if (voterRecords.find(name) != voterRecords.end()) {
-                response = "ALREADY VOTED";
+                response = "ALREADY VOTED\n";
                 write(conn_fd, response.c_str(), response.size());
                 close(conn_fd);
                 continue;
             }
             else {
-                response = "SEND VOTE PLEASE";
+                response = "SEND VOTE PLEASE: ";
                 write(conn_fd, response.c_str(), response.size());
             }
         }
