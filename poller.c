@@ -1,331 +1,196 @@
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <pthread.h>
 #include <signal.h>
 
-#define MAX_BUFFER_SIZE 1024
-#define MAX_PARTY_NAME_SIZE 256
-#define MAX_NAME_SIZE 256
-#define MAX_QUEUE_SIZE 50
+// Define the mutex and condition variables
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-typedef struct {
-    char voter_name[MAX_NAME_SIZE];
-    char party_name[MAX_PARTY_NAME_SIZE];
-} Vote;
+// Shared buffer to store client sockets
+int *buffer;
+int bufferIndex = 0;
 
-typedef struct {
-    int sock;
-    struct sockaddr_in addr;
-} Connection;
+// Array to store client votes
+char **votes;
+char **names;
+int *voteCounts;
 
-typedef struct {
-    Vote votes[MAX_QUEUE_SIZE];
-    int front;
-    int rear;
-    int size;
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-} VoteQueue;
+FILE *pollLog, *pollStats;
 
-int listenfd;
-pthread_t *worker_threads;
-int num_worker_threads;
-int stop = 0;
+int numParties = 0;
 
-VoteQueue vote_queue;
-
-void write_poll_stats();
-
-void signal_handler(int sig) {
-    printf("Received signal: %d\n", sig);
-
-    if (sig == SIGINT) {
-        stop = 1;
-        shutdown(listenfd, SHUT_RDWR);
-        close(listenfd);
-
-        for (int i = 0; i < num_worker_threads; i++) {
-            pthread_cancel(worker_threads[i]);
-            pthread_join(worker_threads[i], NULL);
-        }
-
-        pthread_mutex_lock(&vote_queue.mutex);
-        write_poll_stats();
-        pthread_mutex_unlock(&vote_queue.mutex);
-
-        exit(0);
+void shutdown_handler(int sig) {
+    for(int i = 0; i < numParties; i++) {
+        fprintf(pollStats, "%s %d\n", names[i], voteCounts[i]);
     }
-}
-
-void* worker(void* arg) {
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
-    char buffer[MAX_BUFFER_SIZE];
-
-    while (1) {
-        pthread_mutex_lock(&vote_queue.mutex);
-        while (vote_queue.size == 0)
-            pthread_cond_wait(&vote_queue.cond, &vote_queue.mutex);
-
-        Vote vote = vote_queue.votes[vote_queue.front];
-        vote_queue.front = (vote_queue.front + 1) % MAX_QUEUE_SIZE;
-        vote_queue.size--;
-
-        pthread_mutex_unlock(&vote_queue.mutex);
-
-        Connection conn = *(Connection*)arg;
-        int sock = conn.sock;
-
-        ssize_t n = write(sock, "SEND NAME PLEASE\n", 17);
-        if (n == -1) {
-            perror("write");
-            return NULL;
-        }
-
-        n = read(sock, buffer, sizeof(buffer));
-        if (buffer[n-1] == '\n') {
-            buffer[n-1] = '\0';
-            n--;
-        }
-
-        printf("Raw bytes: ");
-        for (ssize_t i = 0; i < n; i++) {
-            printf("%c", buffer[i]);
-        }
-        printf("\n");
-        printf("Received: %s\n", buffer);
-
-        if (n == -1) {
-            perror("read");
-            return NULL;
-        }
-
-        strncpy(vote.voter_name, buffer, n);
-        vote.voter_name[n] = '\0';
-
-        printf("Voter name: %s\n", vote.voter_name);
-
-        memset(buffer, 0, sizeof(buffer));
-
-        pthread_mutex_lock(&vote_queue.mutex);
-        int already_voted = 0;
-        for (int i = 0; i < vote_queue.size; i++) {
-            if (strcmp(vote.voter_name, vote_queue.votes[(vote_queue.front + i) % MAX_QUEUE_SIZE].voter_name) == 0) {
-                already_voted = 1;
-                break;
-            }
-        }
-
-        if (already_voted) {
-            write(sock, "ALREADY VOTED\n", 14);
-            close(sock);
-            pthread_mutex_unlock(&vote_queue.mutex);
-            continue;
-        }
-
-        ssize_t m = write(sock, "SEND VOTE PLEASE\n", 17);
-        if (m == -1) {
-            perror("write");
-            return NULL;
-        }
-
-        m = read(sock, buffer, sizeof(buffer));
-        if (buffer[m-1] == '\n') {
-            buffer[m-1] = '\0';
-            m--;
-        }
-        printf("Received: %s\n", buffer);
-
-        if (m == -1) {
-            perror("read");
-            return NULL;
-        }
-
-        strncpy(vote.party_name, buffer, m);
-        vote.party_name[m] = '\0';
-
-        memset(buffer, 0, sizeof(buffer));
-
-        printf("Voter %s voted for %s\n", vote.voter_name, vote.party_name);
-
-        vote_queue.votes[vote_queue.rear] = vote;
-        vote_queue.rear = (vote_queue.rear + 1) % MAX_QUEUE_SIZE;
-        vote_queue.size++;
-
-        snprintf(buffer, sizeof(buffer), "VOTE for Party %s RECORDED\n", vote.party_name);
-        n = write(sock, buffer, strlen(buffer));
-        if (n == -1) {
-            perror("write");
-            return NULL;
-        }
-
-        pthread_mutex_unlock(&vote_queue.mutex);
-        close(sock);
-    }
-
-    return NULL;
-}
-
-void write_poll_stats() {
-    int total_votes = 0;
-
-    FILE* pollStats = fopen("pollStats.txt", "w");
-    if (pollStats == NULL) {
-        perror("Failed to open stats file");
-        return;
-    }
-
-    for (int i = 0; i < vote_queue.size; i++) {
-        Vote vote = vote_queue.votes[(vote_queue.front + i) % MAX_QUEUE_SIZE];
-        fprintf(pollStats, "%s %s\n", vote.voter_name, vote.party_name);
-    }
-
-    fprintf(pollStats, "TOTAL %d\n", vote_queue.size);
-    fflush(pollStats);
-
+    fclose(pollLog);
     fclose(pollStats);
+    exit(0);
 }
+
+void* handle_client(void* arg) {
+    int client_sock = *(int*)arg;
+    char name[256] = {0};
+    char party[256] = {0};
+
+    // Ask for the client's name
+    write(client_sock, "SEND NAME PLEASE", 16);
+    for (int i=0; i<256; i++) {
+        printf("%c", name[i]);
+    }
+    // Read the client's name
+    ssize_t len = read(client_sock, name, sizeof(name) - 1);
+    // name[strcspn(name, "\n")] = 0; // Replace newline at any position
+    size_t lenn = strlen(name);
+    
+    printf("Size of name: %ld\n", len);
+    printf("Name: %s", name);
+
+    // Lock the mutex before checking if the client has already voted
+    pthread_mutex_lock(&mutex);
+
+    int found = 0;
+    for(int i = 0; i < numParties; i++) {
+        if(strcmp(names[i], name) == 0) {
+            found = 1;
+            break;
+        }
+    }
+
+    if(found) {
+        write(client_sock, "ALREADY VOTED", 13);
+    } else {
+        // Ask for the client's vote
+        write(client_sock, "SEND VOTE PLEASE", 16);
+        // Read the client's vote
+        len = read(client_sock, party, sizeof(party) - 1);
+        // if (len > 0 && party[len - 1] == '\n') party[len - 1] = '\0'; // Remove newline if it's there
+        printf("Size of party: %ld\n", len);
+        for (ssize_t i=0; i<len; i++) {
+            printf("%c", party[i]);
+        }
+
+        names[numParties] = strdup(name);
+        votes[numParties] = strdup(party);
+        voteCounts[numParties] = 1;
+        numParties++;
+
+        // Write the vote to the poll log file
+        fprintf(pollLog, "%s %s\n", name, party);
+
+        char msg[500];
+        snprintf(msg, sizeof(msg), "VOTE for Party %s RECORDED", party);
+        write(client_sock, msg, strlen(msg));
+    }
+
+    // Unlock the mutex
+    pthread_mutex_unlock(&mutex);
+
+    close(client_sock);
+
+    pthread_exit(NULL);
+}
+
+
 
 void* worker(void* arg) {
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-
-    char buffer[MAX_BUFFER_SIZE];
-
     while (1) {
-        pthread_mutex_lock(&vote_queue.mutex);
-        while (vote_queue.size == 0)
-            pthread_cond_wait(&vote_queue.cond, &vote_queue.mutex);
+        int client_sock;
 
-        Connection conn = *(Connection*)arg;
-        int sock = conn.sock;
+        // Lock the mutex before checking the buffer
+        pthread_mutex_lock(&mutex);
 
-        Vote vote;
-        strncpy(vote.voter_name, buffer, MAX_NAME_SIZE);
-        vote.voter_name[MAX_NAME_SIZE - 1] = '\0';
-
-        ssize_t m = write(sock, "SEND VOTE PLEASE\n", 17);
-        if (m == -1) {
-            perror("write");
-            return NULL;
+        while (bufferIndex == 0) {
+            // Wait until the buffer is not empty
+            pthread_cond_wait(&cond, &mutex);
         }
 
-        m = read(sock, buffer, sizeof(buffer));
-        if (buffer[m-1] == '\n') {
-            buffer[m-1] = '\0';
-            m--;
-        }
-        printf("Received: %s\n", buffer);
+        // Remove a client socket from the buffer
+        client_sock = buffer[--bufferIndex];
 
-        if (m == -1) {
-            perror("read");
-            return NULL;
-        }
+        // Unlock the mutex
+        pthread_mutex_unlock(&mutex);
 
-        strncpy(vote.party_name, buffer, MAX_PARTY_NAME_SIZE);
-        vote.party_name[MAX_PARTY_NAME_SIZE - 1] = '\0';
-
-        memset(buffer, 0, sizeof(buffer));
-
-        printf("Voter %s voted for %s\n", vote.voter_name, vote.party_name);
-
-        vote_queue.votes[vote_queue.rear] = vote;
-        vote_queue.rear = (vote_queue.rear + 1) % MAX_QUEUE_SIZE;
-        vote_queue.size++;
-
-        snprintf(buffer, sizeof(buffer), "VOTE for Party %s RECORDED\n", vote.party_name);
-        ssize_t n = write(sock, buffer, strlen(buffer));
-        if (n == -1) {
-            perror("write");
-            return NULL;
-        }
-
-        pthread_mutex_unlock(&vote_queue.mutex);
-        close(sock);
+        // Handle the client
+        handle_client(&client_sock);
     }
 
-    return NULL;
+    pthread_exit(NULL);
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     if (argc != 6) {
-        fprintf(stderr, "Usage: %s portnum num_worker_threads bufferSize pollLogPath pollStatsPath\n", argv[0]);
-        return 1;
+        printf("Usage: ./poller [portnum] [numWorkerthreads] [bufferSize] [poll-log] [poll-stats]\n");
+        exit(1);
     }
 
-    signal(SIGINT, signal_handler);
+    signal(SIGINT, shutdown_handler);
 
-    int portnum = atoi(argv[1]);
-    num_worker_threads = atoi(argv[2]);
+    int portNum = atoi(argv[1]);
+    int numWorkerThreads = atoi(argv[2]);
     int bufferSize = atoi(argv[3]);
-    char* pollLogPath = argv[4];
-    char* pollStatsPath = argv[5];
 
-    FILE* pollLog = fopen(pollLogPath, "w");
-    if (pollLog == NULL) {
-        perror("Failed to open log file");
-        return 1;
+    buffer = (int*) malloc(bufferSize * sizeof(int));
+    votes = (char**) malloc(bufferSize * sizeof(char*));
+    names = (char**) malloc(bufferSize * sizeof(char*));
+    voteCounts = (int*) malloc(bufferSize * sizeof(int));
+
+    for (int i = 0; i < bufferSize; i++) {
+        votes[i] = (char*) malloc(256 * sizeof(char));
+        names[i] = (char*) malloc(256 * sizeof(char));
     }
 
-    vote_queue.front = 0;
-    vote_queue.rear = 0;
-    vote_queue.size = 0;
-    pthread_mutex_init(&vote_queue.mutex, NULL);
-    pthread_cond_init(&vote_queue.cond, NULL);
+    pollLog = fopen(argv[4], "w");
+    pollStats = fopen(argv[5], "w");
 
-    worker_threads = (pthread_t*)malloc(num_worker_threads * sizeof(pthread_t));
-    for (int i = 0; i < num_worker_threads; i++) {
-        Connection* conn = malloc(sizeof(Connection));
-        conn->sock = -1;
-        pthread_create(&worker_threads[i], NULL, worker, conn);
+    pthread_t *workers = (pthread_t*) malloc(numWorkerThreads * sizeof(pthread_t));
+
+    // Start the worker threads
+    for (int i = 0; i < numWorkerThreads; i++) {
+        pthread_create(&workers[i], NULL, worker, NULL);
     }
 
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenfd == -1) {
-        perror("socket");
-        return 1;
-    }
+    // Create the socket
+    int server_sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    struct sockaddr_in servaddr = {0};
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(portnum);
+    // Define the server address
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(portNum);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
-        perror("bind");
-        return 1;
-    }
+    // Bind the socket
+    bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
-    if (listen(listenfd, MAX_QUEUE_SIZE) == -1) {
-        perror("listen");
-        return 1;
-    }
+    // Start listening
+    listen(server_sock, 10);
 
-    while (!stop) {
-        Connection conn;
-        socklen_t addrlen = sizeof(conn.addr);
+    printf("Server listening on port %d...\n", portNum);
 
-        conn.sock = accept(listenfd, (struct sockaddr*)&conn.addr, &addrlen);
-        if (conn.sock == -1) {
-            perror("accept");
-            return 1;
-        }
+    while (1) {
+        struct sockaddr_in client_addr;
+        socklen_t client_len = sizeof(client_addr);
 
-        pthread_mutex_lock(&vote_queue.mutex);
-        while (vote_queue.size == bufferSize)
-            pthread_cond_wait(&vote_queue.cond, &vote_queue.mutex);
+        // Accept a new client
+        int client_sock = accept(server_sock, (struct sockaddr*)&client_addr, &client_len);
 
-        vote_queue.votes[vote_queue.rear] = vote;
-        vote_queue.rear = (vote_queue.rear + 1) % MAX_QUEUE_SIZE;
-        vote_queue.size++;
+        // Lock the mutex before adding the client socket to the buffer
+        pthread_mutex_lock(&mutex);
 
-        pthread_mutex_unlock(&vote_queue.mutex);
-        pthread_cond_signal(&vote_queue.cond);
+        // Add the client socket to the buffer
+        buffer[bufferIndex++] = client_sock;
+
+        // Signal a worker thread that the buffer is not empty
+        pthread_cond_signal(&cond);
+
+        // Unlock the mutex
+        pthread_mutex_unlock(&mutex);
     }
 
     return 0;
