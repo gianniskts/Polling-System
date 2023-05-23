@@ -98,7 +98,7 @@ void workerThread(string poll_log_file) {
         }
         poll_log << name << " " << party << "\n";
         poll_log.close();
-        response = "VOTE for Party " + party + " RECORDED";
+        response = "\nVOTE for Party " + party + " RECORDED";
         write(conn_fd, response.c_str(), response.size());
         close(conn_fd);
     }
