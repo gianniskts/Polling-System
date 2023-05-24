@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     string inputFile = argv[3];
 
     // Open input file
-    ifstream inFile(inputFile);
+    ifstream inFile("../data/" + inputFile);
     if (!inFile) {
         cerr << "Unable to open input file: " << inputFile << "\n";
         exit(1);
