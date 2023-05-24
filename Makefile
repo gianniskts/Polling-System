@@ -7,26 +7,35 @@ CXXFLAGS = -std=c++14 -Wall -Wextra
 # Shell
 SH = /bin/bash
 
+# Source and bin directories
+SRC_DIR = src
+BIN_DIR = bin
+SCRIPT_DIR = scripts
+
 # Targets
-all: poller pollSwayer create_input tally_votes process_log
+.PHONY: all poller pollSwayer create_input tally_votes process_log clean
 
-poller: ../src/poller.cpp
-	$(CXX) $(CXXFLAGS) $< -o ../bin/$@
+all: directories poller pollSwayer create_input tally_votes process_log
 
-pollSwayer: ../src/pollSwayer.cpp
-	$(CXX) $(CXXFLAGS) $< -o ../bin/$@
+directories: ${BIN_DIR}
 
-create_input: ../scripts/create_input.sh
-	cp $< ../bin/
-	chmod +x ../bin/$@
+${BIN_DIR}:
+	mkdir -p ${BIN_DIR}
 
-tally_votes: ../scripts/tallyVotes.sh
-	cp $< ../bin/
-	chmod +x ../bin/$@
+poller: $(SRC_DIR)/poller.cpp
+	$(CXX) $(CXXFLAGS) $< -o $(BIN_DIR)/$@
 
-process_log: ../scripts/processLogFile.sh
-	cp $< ../bin/
-	chmod +x ../bin/$@
+pollSwayer: $(SRC_DIR)/pollSwayer.cpp
+	$(CXX) $(CXXFLAGS) $< -o $(BIN_DIR)/$@
+
+create_input: $(SCRIPT_DIR)/create_input.sh
+	chmod +x $<
+
+tally_votes: $(SCRIPT_DIR)/tallyVotes.sh
+	chmod +x $<
+
+process_log: $(SCRIPT_DIR)/processLogFile.sh
+	chmod +x $<
 
 clean:
-	rm -f ../bin/poller ../bin/pollSwayer ../bin/create_input ../bin/tally_votes ../bin/process_log
+	rm -rf $(BIN_DIR)
