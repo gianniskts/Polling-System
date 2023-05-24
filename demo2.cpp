@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-void sendVote(const std::string& serverName, const int portNum, const std::string& vote) {
+void sendVote(const std::string& serverName, const int portNum, const std::string& name, const std::string& vote) {
     struct sockaddr_in server_addr;
     int sock = -1;
     try {
@@ -28,12 +28,20 @@ void sendVote(const std::string& serverName, const int portNum, const std::strin
             throw std::runtime_error("Connection failed");
         }
 
+        // Send the name
+        if( send(sock , name.c_str() , strlen(name.c_str()) , 0) < 0) {
+            throw std::runtime_error("Send failed");
+        }
+
+        // Get the server's response
+        char buffer[256];
+        if (read(sock, buffer, 255) < 0)
+            throw std::runtime_error("Read failed");
+        
         // Send the vote
         if( send(sock , vote.c_str() , strlen(vote.c_str()) , 0) < 0) {
             throw std::runtime_error("Send failed");
         }
-
-        // TODO: Add any response handling if necessary
 
     } catch (const std::runtime_error& e) {
         std::cerr << "Exception in thread: " << e.what() << '\n';
@@ -58,9 +66,9 @@ int main(int argc , char *argv[]) {
     std::vector<std::thread> threads;
 
     while(std::getline(inputFile, line)) {
-        // This assumes that each line in the file is a vote to be sent.
-        // Adjust as necessary for your use case.
-        threads.push_back(std::thread(sendVote, serverName, portNum, line));
+        std::string name = line.substr(0, line.find(','));
+        std::string vote = line.substr(line.find(',') + 1);
+        threads.push_back(std::thread(sendVote, serverName, portNum, name, vote));
     }
 
     // Wait for all threads to finish

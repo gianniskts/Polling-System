@@ -1,9 +1,6 @@
-First ND
-Second PASOK
-Third PASOK
-Fourth ND
-Fifth PASOK
-Sixth ND
-Seventh PASOK
-Eighth ND
-Ninth Syriza
+First,ND
+Second,PASOK
+Third,PASOK
+Fourth,ND
+Fifth,PASOK
+Sixth,ND
