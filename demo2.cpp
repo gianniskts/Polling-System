@@ -1,63 +1,74 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <unistd.h>
-#include <stdexcept>
-#include <cstring>
-#include <arpa/inet.h>
+#include <thread>
+#include <vector>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstring>
 
-void sendVote(const std::string& serverName, const int portNum, const std::string& vote) {
-    struct sockaddr_in server_addr;
-    int sock = -1;
-    try {
-        // Create socket
-        sock = socket(AF_INET , SOCK_STREAM , 0);
-        if (sock == -1) {
-            throw std::runtime_error("Could not create socket");
-        }
+using namespace std;
 
-        server_addr.sin_addr.s_addr = inet_addr(serverName.c_str());
-        server_addr.sin_family = AF_INET;
-        server_addr.sin_port = htons(portNum);
-
-        // Connect to remote server
-        if (connect(sock , (struct sockaddr *)&server_addr , sizeof(server_addr)) < 0) {
-            throw std::runtime_error("Connection failed");
-        }
-
-        // Send the vote
-        if( send(sock , vote.c_str() , strlen(vote.c_str()) , 0) < 0) {
-            throw std::runtime_error("Send failed");
-        }
-
-        // TODO: Add any response handling if necessary
-
-    } catch (const std::runtime_error& e) {
-        std::cerr << "Exception: " << e.what() << '\n';
+void sendVote(const string &serverName, int portNum, const string &name_vote) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("Error creating socket");
+        return;
     }
 
-    if (sock != -1) {
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(portNum);
+    if (inet_pton(AF_INET, serverName.c_str(), &serv_addr.sin_addr) <= 0) {
+        perror("Error on inet_pton");
         close(sock);
+        return;
     }
+
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Error connecting to server");
+        close(sock);
+        return;
+    }
+
+    if (send(sock, name_vote.c_str(), name_vote.size(), 0) < 0) {
+        perror("Error sending vote");
+    }
+
+    char buffer[256];
+    memset(buffer, 0, sizeof(buffer));
+    if (read(sock, buffer, sizeof(buffer) - 1) < 0) {
+        perror("Error reading confirmation from server");
+    } else {
+        cout << "Server confirmation: " << buffer << "\n";
+    }
+
+    close(sock);
 }
 
-int main(int argc , char *argv[]) {
-    if(argc != 4) {
-        std::cerr << "Usage: " << argv[0] << " [serverName] [portNum] [inputFile.txt]\n";
-        return 1;
+int main(int argc, char *argv[]) {
+    if (argc != 4) {
+        cerr << "Usage: " << argv[0] << " [serverName] [portNum] [inputFile.txt]\n";
+        exit(1);
     }
 
-    std::string serverName = argv[1];
-    int portNum = std::stoi(argv[2]);
-    std::string inputFilePath = argv[3];
-    std::ifstream inputFile(inputFilePath);
-    std::string line;
+    string serverName = argv[1];
+    int portNum = atoi(argv[2]);
+    string inputFile = argv[3];
 
-    while(std::getline(inputFile, line)) {
-        // This assumes that each line in the file is a vote to be sent.
-        // Adjust as necessary for your use case.
-        sendVote(serverName, portNum, line);
+    ifstream inFile(inputFile);
+    if (!inFile) {
+        cerr << "Unable to open input file: " << inputFile << "\n";
+        exit(1);
+    }
+
+    string line;
+    vector<thread> workers;
+    while (getline(inFile, line)) {
+        workers.push_back(thread(sendVote, serverName, portNum, line));
+        // Wait for current thread to complete before moving to the next one.
+        workers.back().join();
     }
 
     return 0;

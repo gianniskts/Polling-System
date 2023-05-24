@@ -1,0 +1,3 @@
+ND 3
+PASOK 3
+TOTAL 6

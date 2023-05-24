@@ -63,37 +63,29 @@ void workerThread(string poll_log_file) {
         cout << "Connection accepted\n";
         cout << "----------------------------------------\n";
         memset(buffer, 0, 256);
-        string request = "Please Enter Your Name: ";
+        string request = "Please Enter Your Name followed by Your Vote (separated by a space): ";
         write(conn_fd, request.c_str(), request.size());
 
-        string name;
         if (read(conn_fd, buffer, 255) < 0)
             continue;
-        name = trim(string(buffer));
+        string name_vote = trim(string(buffer));
+        size_t pos = name_vote.find(' ');
+        if (pos == string::npos)
+            continue;
+        string name = name_vote.substr(0, pos);
+        string party = name_vote.substr(pos + 1);
         memset(buffer, 0, 256);
         string response;
         {
             unique_lock<mutex> lock(mtx);
             if (voterRecords.find(name) != voterRecords.end()) {
                 response = "Already Voted\n";
-                write(conn_fd, response.c_str(), response.size());
-                close(conn_fd);
-                continue;
             }
             else {
-                response = "Please Enter Your Vote: ";
-                write(conn_fd, response.c_str(), response.size());
+                voterRecords[name] = party;
+                partyVotes[party]++;
+                response = "\nVote for Party " + party + " recorded\n";
             }
-        }
-        string party;
-        if (read(conn_fd, buffer, 255) < 0)
-            continue;
-        party = trim(string(buffer));
-        memset(buffer, 0, 256);
-        {
-            unique_lock<mutex> lock(mtx);
-            voterRecords[name] = party;
-            partyVotes[party]++;
         }
         ofstream poll_log;
         poll_log.open(poll_log_file, ios_base::app);
@@ -103,13 +95,10 @@ void workerThread(string poll_log_file) {
         }
         poll_log << name << " " << party << "\n";
         poll_log.close();
-        response = "\nVote for Party " + party + " recorded\n";
         write(conn_fd, response.c_str(), response.size());
         close(conn_fd);
     }
 }
-
-
 
 int main(int argc, char *argv[]) {
     if (argc != 6) {
