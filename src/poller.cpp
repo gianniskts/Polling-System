@@ -25,7 +25,7 @@ string poll_stats_file;
 
 void handle_sigint(int sig) {
     ofstream poll_stats;
-    poll_stats.open(poll_stats_file);
+    poll_stats.open("../results/" + poll_stats_file);
     if (!poll_stats) {
         cerr << "Unable to open file: " << poll_stats_file << "\n";
         exit(1);
@@ -88,7 +88,8 @@ void workerThread(string poll_log_file) {
             }
         }
         ofstream poll_log;
-        poll_log.open(poll_log_file, ios_base::app);
+        poll_log.open("../logs/" + poll_log_file, ios_base::app);
+
         if (!poll_log) {
             cerr << "Unable to Open File: " << poll_log_file << "\n";
             exit(1);
