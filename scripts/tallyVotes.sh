@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check if inputFile.txt exists
-if [ ! -f inputFile.txt ]; then
+if [ ! -f "../data/inputFile.txt" ]; then
     echo "inputFile.txt not found!"
     exit 1
 fi
@@ -13,4 +13,4 @@ if [ -z "$1" ]; then
 fi
 
 # Process inputFile.txt to count the first vote of each unique voter
-awk '!seen[$1]++ {print $2}' inputFile.txt | sort | uniq -c > "$1"
+awk '!seen[$1]++ {print $2}' "../data/inputFile.txt" | sort | uniq -c > "../results/$1"

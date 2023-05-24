@@ -7,7 +7,7 @@ if [ "$#" -ne 2 ]; then
 fi
 
 # Assigning arguments to variables
-parties_file=$1
+parties_file="../data/$1"
 num_lines=$2
 
 # Check if the political parties file exists
@@ -21,5 +21,5 @@ for (( i=0; i<$num_lines; i++ ))
 do
     name=$(head /dev/urandom | tr -dc A-Za-z | head -c $((RANDOM%10+3)))
     party=$(shuf -n 1 $parties_file)
-    echo "$name $party" >> inputFile.txt
+    echo "$name $party" >> "../data/inputFile.txt"
 done
