@@ -22,17 +22,17 @@ mutex mtx;
 condition_variable cond_var;
 string poll_stats_file;
 
-void handle_sigint(int sig) {
-    ofstream poll_stats;
-    poll_stats.open("../results/" + poll_stats_file);
+void handle_sigint(int sig) { // handle Ctrl+C
+    ofstream poll_stats; // write poll stats to file
+    poll_stats.open("../results/" + poll_stats_file); // open poll stats file
     if (!poll_stats) {
         cerr << "Unable to open file: " << poll_stats_file << "\n";
-        exit(1);
+        exit(-6);
     }
-    int total_votes = 0;
-    for (const auto& pair : partyVotes) {
-        poll_stats << pair.first << " " << pair.second << "\n";
-        total_votes += pair.second;
+    int total_votes = 0; // total number of votes
+    for (const auto& pair : partyVotes) { // iterate over partyVotes map
+        poll_stats << pair.first << " " << pair.second << "\n"; // write party and number of votes to file
+        total_votes += pair.second; // increment total number of votes
     }
     poll_stats << "TOTAL " << total_votes << "\n";
     poll_stats.close();
