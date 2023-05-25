@@ -135,13 +135,13 @@ int main(int argc, char *argv[]) {
     cout << "Waiting for connections...\n";
     cout << "----------------------------------------\n";
 
-    vector<thread> workers;
+    vector<thread> workers; // worker threads to handle connections concurrently 
     for (int i = 0; i < num_worker_threads; i++)
-        workers.push_back(thread(workerThread, poll_log_file));
+        workers.push_back(thread(workerThread, poll_log_file)); // create worker threads and push them to the vector of threads
 
-    int server_fd, new_socket;
-    sockaddr_in address;
-    int addrlen = sizeof(address);
+    int server_fd, new_socket; // server_fd: socket file descriptor, new_socket: new socket file descriptor for each connection
+    sockaddr_in address; // address of the server
+    int addrlen = sizeof(address); // length of the address, required by accept
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("socket failed");
