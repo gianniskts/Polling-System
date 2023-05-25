@@ -143,23 +143,23 @@ int main(int argc, char *argv[]) {
     sockaddr_in address; // address of the server
     int addrlen = sizeof(address); // length of the address, required by accept
 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) { // create socket 
         perror("socket failed");
-        exit(EXIT_FAILURE);
+        exit(-5);
     }
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(port_num);
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    address.sin_family = AF_INET; // IPv4 address family, required by bind
+    address.sin_addr.s_addr = INADDR_ANY; // localhost, required by bind
+    address.sin_port = htons(port_num); // port number, required by bind
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { // bind socket to the address
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-    if (listen(server_fd, 3) < 0) {
+    if (listen(server_fd, 4) < 0) { // listen for connections, 4 is the maximum number of connections in the queue
         perror("listen failed");
         exit(EXIT_FAILURE);
     }
 
-    while (1) {
+    while (true) {
         int conn_fd;
         if ((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
             perror("accept failed");
