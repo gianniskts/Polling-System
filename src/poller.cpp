@@ -39,13 +39,13 @@ void handle_sigint(int sig) { // handle Ctrl+C
     exit(0);
 }
 
-
+// trim whitespace and newlines, used to clean up input from client workerThread
 string trim(const string& str) {
-    size_t first = str.find_first_not_of("\n\r");
-    if (string::npos == first)
+    size_t first = str.find_first_not_of("\n\r"); // find first character that is not a newline or carriage return
+    if (string::npos == first) // if no such character exists,
         return str;
-    size_t last = str.find_last_not_of("\n\r");
-    return str.substr(first, (last - first + 1));
+    size_t last = str.find_last_not_of("\n\r"); // find last character that is not a newline or carriage return
+    return str.substr(first, (last - first + 1)); // return substring from first to last character
 }
 
 void workerThread(string poll_log_file) {
