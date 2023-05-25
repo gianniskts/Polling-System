@@ -160,24 +160,24 @@ int main(int argc, char *argv[]) {
     }
 
     while (true) {
-        int conn_fd;
-        if ((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+        int conn_fd; // socket file descriptor for each connection
+        if ((conn_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) { // accept connection, blocks until a connection is established
             perror("accept failed");
             continue;
         }
         {
-            unique_lock<mutex> lock(mtx);
-            while (connectionBuffer.size() >= buffer_size)
-                cond_var.wait(lock);
-            connectionBuffer.push_back(conn_fd);
-            cond_var.notify_one();
+            unique_lock<mutex> lock(mtx); // lock the mutex, so that only one thread can access the buffer at a time
+            while (connectionBuffer.size() >= buffer_size) // wait until the buffer is not full
+                cond_var.wait(lock); // wait until notified
+            connectionBuffer.push_back(conn_fd); // push the connection to the buffer
+            cond_var.notify_one(); // notify one thread
         }
     }
 
-    close(server_fd);
+    close(server_fd); // close the socket
 
-    for (auto &worker : workers)
-        worker.join();
+    for (auto &worker : workers) // wait for all worker threads to finish
+        worker.join(); // join the thread
 
     return 0;
 }
