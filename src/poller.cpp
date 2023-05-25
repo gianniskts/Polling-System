@@ -15,12 +15,12 @@
 
 using namespace std;
 
-map<string, int> partyVotes;
-map<string, string> voterRecords;
-vector<int> connectionBuffer;
-mutex mtx;
-condition_variable cond_var;
-string poll_stats_file;
+map<string, int> partyVotes; // map of party to number of votes, example {"ND": 5, "PASOK": 3, "KKE": 2}
+map<string, string> voterRecords; // map of voter name to party, example {"Giannis": "A", "Giorgos": "B", "Maria": "C"}
+vector<int> connectionBuffer; // buffer of connection file descriptors, used to pass connections from main thread to worker threads
+mutex connection_mutex; // mutex to lock connection buffer
+condition_variable cond_var; // condition variable to signal worker threads when connection buffer is not empty
+string poll_stats_file; // name of poll stats file
 
 void handle_sigint(int sig) { // handle Ctrl+C
     ofstream poll_stats; // write poll stats to file
@@ -54,7 +54,7 @@ void workerThread(string poll_log_file) {
     while (true) {
         int conn_fd; // connection file descriptor
         {
-            unique_lock<mutex> lock(mtx); // lock mutex
+            unique_lock<mutex> lock(connection_mutex); // lock mutex
             while (connectionBuffer.empty()) // if connection buffer is empty,
                 cond_var.wait(lock); // wait for signal from main thread
             conn_fd = connectionBuffer.back(); // get last connection file descriptor from connection buffer
@@ -77,7 +77,7 @@ void workerThread(string poll_log_file) {
         memset(buffer, 0, 256); // clear buffer
         string response; // response to send to client
         {
-            unique_lock<mutex> lock(mtx); // lock mutex
+            unique_lock<mutex> lock(connection_mutex); // lock mutex
             if (voterRecords.find(name) != voterRecords.end()) { // if voter has already voted,
                 response = "Already Voted\n";
             }
