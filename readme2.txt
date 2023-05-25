@@ -1,15 +1,15 @@
 -------------------------------------poller-------------------------------------
 
------Example-----
+-----Example Usage-----
 
-cd bin
 make
+cd bin
 ./poller 5634 8 16 pollLog.txt pollStats.txt
 
 Από άλλο terminal:
 telnet localhost 5634
 
------Code-----
+-----Code Explanation-----
 
 handle_sigint(int sig): Αυτή η συνάρτηση είναι ο χειριστής σήματος για το SIGINT (Ctrl+C). 
 Όταν καλείται, ανοίγει το αρχείο στατιστικών στοιχείων της ψηφοφορίας και γράφει στο αρχείο 
@@ -41,6 +41,19 @@ main(int argc, char *argv[]): Αυτό είναι το σημείο εισόδο
 
 -------------------------------------pollSwayer-------------------------------------
 
+-----Example Usage-----
+
+make
+cd bin
+./poller 5634 8 16 pollLog.txt pollStats.txt
+
+Από άλλο terminal:
+make
+cd bin
+./pollSwayer 127.0.0.1 5634 votes.txt
+
+-----Code Explanation-----
+
 sendVote(const string &serverName, int portNum, const string &name_vote): Αυτή η συνάρτηση στέλνει μια ψήφο
 στον διακομιστή. Δημιουργεί πρώτα μια υποδοχή TCP και καθορίζει τη διεύθυνση του server. Στη συνέχεια 
 συνδέεται με τον server και στέλνει την ψήφο του πελάτη (που περιέχεται στο string name_vote) στον server. 
@@ -60,6 +73,14 @@ main(int argc, char *argv[]): Αυτό είναι το σημείο εισόδο
 
 
 -------------------------------------create_input-------------------------------------
+
+-----Example Usage-----
+
+make
+cd scripts
+./create_input.sh politicalParties.txt 5
+
+-----Code Explanation-----
 
 Αυτό το script bash παράγει ένα αρχείο εισόδου για ένα σύστημα δημοσκοπήσεων. Κάθε γραμμή του αρχείου 
 αντιπροσωπεύει μια ψήφο, αποτελούμενη από ένα τυχαία παραγόμενο όνομα και ένα κόμμα που επιλέγεται από 
@@ -93,6 +114,13 @@ main(int argc, char *argv[]): Αυτό είναι το σημείο εισόδο
 
 
 -------------------------------------processLogFile-------------------------------------
+
+-----Example Usage-----
+make
+cd scripts
+./processLogFile.sh pollLog.txt
+
+-----Code Explanation-----
 
 Αυτό το script bash επεξεργάζεται ένα αρχείο καταγραφής ψηφοφορίας και δημιουργεί ένα αρχείο αποτελεσμάτων 
 που περιέχει μια καταμέτρηση των ψήφων. Κάθε γραμμή στο αρχείο καταγραφής θεωρείται ότι αντιπροσωπεύει μια 
