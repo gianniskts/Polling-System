@@ -102,23 +102,23 @@ void workerThread(string poll_log_file) {
 
 int main(int argc, char *argv[]) {
     if (argc != 6) {
-        cerr << "Usage: " << argv[0] << " [portnum] [numWorkerthreads] [bufferSize] [poll-log] [poll-stats]\n";
-        exit(1);
+        cerr << "Usage: " << argv[0] << " [portnum] [numWorkerthreads] [bufferSize] [poll-log] [poll-stats]" << endl;
+        exit(-1);
     }
     int port_num = atoi(argv[1]);
     if (port_num <= 0) {
-        cerr << "Port number must be greater than 0.\n";
-        exit(1);
+        cerr << "Port number must be greater than 0." << endl;
+        exit(-2);
     }
     int num_worker_threads = atoi(argv[2]);
     if (num_worker_threads <= 0) {
-        cerr << "Number of worker threads must be greater than 0.\n";
-        exit(1);
+        cerr << "Number of worker threads must be greater than 0." << endl;
+        exit(-3);
     }
     int buffer_size = atoi(argv[3]);
     if (buffer_size <= 0) {
-        cerr << "Buffer size must be greater than 0.\n";
-        exit(1);
+        cerr << "Buffer size must be greater than 0." << endl;
+        exit(-4);
     }
     string poll_log_file = argv[4];
     poll_stats_file = argv[5];
