@@ -57,7 +57,6 @@ To run the server, use the following command:
 
 ./bin/poller [portnum] [numWorkerthreads] [bufferSize] [poll-log] [poll-stats]
 
-
 - `portnum`: The port number to run the server on.
 - `numWorkerthreads`: The number of worker threads to use for processing client requests.
 - `bufferSize`: The size of the connection buffer.
