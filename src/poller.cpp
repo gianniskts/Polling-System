@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
         cerr << "Number of worker threads must be greater than 0." << endl;
         exit(-3);
     }
-    int buffer_size = atoi(argv[3]);
+    long unsigned int buffer_size = atoi(argv[3]);
     if (buffer_size <= 0) {
         cerr << "Buffer size must be greater than 0." << endl;
         exit(-4);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_worker_threads; i++)
         workers.push_back(thread(workerThread, poll_log_file)); // create worker threads and push them to the vector of threads
 
-    int server_fd, new_socket; // server_fd: socket file descriptor, new_socket: new socket file descriptor for each connection
+    int server_fd; // server_fd: socket file descriptor
     sockaddr_in address; // address of the server
     int addrlen = sizeof(address); // length of the address, required by accept
 
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
         {
-            unique_lock<mutex> lock(mtx); // lock the mutex, so that only one thread can access the buffer at a time
+            unique_lock<mutex> lock(connection_mutex); // lock the mutex, so that only one thread can access the buffer at a time
             while (connectionBuffer.size() >= buffer_size) // wait until the buffer is not full
                 cond_var.wait(lock); // wait until notified
             connectionBuffer.push_back(conn_fd); // push the connection to the buffer
