@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     string poll_log_file = argv[4];
     poll_stats_file = argv[5];
 
-    signal(SIGINT, handle_sigint);
+    signal(SIGINT, handle_sigint); // stop when Ctrl+C is pressed(Needs double Ctrl+C)
 
     cout << "Starting polling server...\n";
     cout << "Port number: " << port_num << "\n";
