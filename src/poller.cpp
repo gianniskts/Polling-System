@@ -48,46 +48,47 @@ string trim(const string& str) {
     return str.substr(first, (last - first + 1)); // return substring from first to last character
 }
 
+// workerThread function to handle connections concurrently
 void workerThread(string poll_log_file) {
-    char buffer[256];
+    char buffer[256]; // buffer to read from socket
     while (true) {
-        int conn_fd;
+        int conn_fd; // connection file descriptor
         {
-            unique_lock<mutex> lock(mtx);
-            while (connectionBuffer.empty())
-                cond_var.wait(lock);
-            conn_fd = connectionBuffer.back();
-            connectionBuffer.pop_back();
+            unique_lock<mutex> lock(mtx); // lock mutex
+            while (connectionBuffer.empty()) // if connection buffer is empty,
+                cond_var.wait(lock); // wait for signal from main thread
+            conn_fd = connectionBuffer.back(); // get last connection file descriptor from connection buffer
+            connectionBuffer.pop_back(); // remove last connection file descriptor from connection buffer
         }
         cout << "Connection accepted\n";
         cout << "----------------------------------------\n";
-        memset(buffer, 0, 256);
+        memset(buffer, 0, 256); // clear buffer
         string request = "Please Enter Your Name followed by Your Vote (separated by a space): ";
-        write(conn_fd, request.c_str(), request.size());
+        write(conn_fd, request.c_str(), request.size()); // write request message to socket
 
-        if (read(conn_fd, buffer, 255) < 0)
+        if (read(conn_fd, buffer, 255) < 0) // read from socket
             continue;
-        string name_vote = trim(string(buffer));
-        size_t pos = name_vote.find(' ');
-        if (pos == string::npos)
+        string name_vote = trim(string(buffer)); // trim whitespace and newlines from input
+        size_t pos = name_vote.find(' '); // find first space in input
+        if (pos == string::npos) // if no space is found, input is invalid
             continue;
-        string name = name_vote.substr(0, pos);
-        string party = name_vote.substr(pos + 1);
-        memset(buffer, 0, 256);
-        string response;
+        string name = name_vote.substr(0, pos); // get name from input
+        string party = name_vote.substr(pos + 1); // get party from input
+        memset(buffer, 0, 256); // clear buffer
+        string response; // response to send to client
         {
-            unique_lock<mutex> lock(mtx);
-            if (voterRecords.find(name) != voterRecords.end()) {
+            unique_lock<mutex> lock(mtx); // lock mutex
+            if (voterRecords.find(name) != voterRecords.end()) { // if voter has already voted,
                 response = "Already Voted\n";
             }
             else {
-                voterRecords[name] = party;
-                partyVotes[party]++;
+                voterRecords[name] = party; // add voter to voter records
+                partyVotes[party]++; // increment vote count for party
                 response = "\nVote for Party " + party + " recorded\n";
             }
         }
-        ofstream poll_log;
-        poll_log.open("../logs/" + poll_log_file, ios_base::app);
+        ofstream poll_log; // write voter name and party to poll log file
+        poll_log.open("../logs/" + poll_log_file, ios_base::app); // open poll log file, ios_base::app == append to file
 
         if (!poll_log) {
             cerr << "Unable to Open File: " << poll_log_file << "\n";
@@ -95,8 +96,8 @@ void workerThread(string poll_log_file) {
         }
         poll_log << name << " " << party << "\n";
         poll_log.close();
-        write(conn_fd, response.c_str(), response.size());
-        close(conn_fd);
+        write(conn_fd, response.c_str(), response.size()); // write response to socket
+        close(conn_fd); // close connection
     }
 }
 
