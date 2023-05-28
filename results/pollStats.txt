@@ -1,3 +1,2 @@
-KKE 1
 ND 1
-TOTAL 2
+TOTAL 1
