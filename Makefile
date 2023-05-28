@@ -2,7 +2,7 @@
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -std=c++14 -Wall -Wextra
+CXXFLAGS = -std=c++14 
 
 # Shell
 SH = /bin/bash
