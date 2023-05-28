@@ -47,7 +47,7 @@ void sendVote(const string &serverName, int portNum, const string &name_vote) {
     if (read(sock, buffer, sizeof(buffer) - 1) < 0) { // read confirmation from server
         perror("Error reading confirmation from server");
     } else {
-        cout << "Server confirmation: " << buffer << "\n";
+        cout << "Server confirmed" << endl;
     }
 
     // Close the socket

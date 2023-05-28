@@ -63,7 +63,7 @@ void workerThread(string poll_log_file) {
         cout << "Connection accepted\n";
         cout << "----------------------------------------\n";
         memset(buffer, 0, 256); // clear buffer
-        string request = "Please Enter Your Name followed by Your Vote (separated by a space): ";
+        string request = "Please Enter Your Name And Your Vote (separated space): ";
         write(conn_fd, request.c_str(), request.size()); // write request message to socket
 
         if (read(conn_fd, buffer, 255) < 0) // read from socket
