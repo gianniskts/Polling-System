@@ -17,4 +17,4 @@ if [ ! -f "../logs/$poll_log" ] || [ ! -r "../logs/$poll_log" ]; then
 fi
 
 # Reading poll-log and tally the votes
-awk 'BEGIN {OFS=FS=" "; total = 0} !seen[$1]++ {votes[$2]++; total++} END {for (i in votes) print i, votes[i]; print "TOTAL", total}' "../logs/$poll_log" > "../results/$poller_results_file"
+awk 'BEGIN {OFS=FS=" "; total = 0} !seen[substr($0, 1, length($0) - length($NF))]++ {votes[$NF]++; total++} END {for (i in votes) print i, votes[i]; print "TOTAL", total}' "../logs/$poll_log" > "../results/$poller_results_file"

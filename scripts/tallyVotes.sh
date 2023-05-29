@@ -13,4 +13,4 @@ if [ -z "$1" ]; then
 fi
 
 # Process inputFile.txt to count the first vote of each unique voter
-awk '!seen[$1]++ {print $2}' "../data/inputFile.txt" | sort | uniq -c > "../results/$1"
+awk '!seen[substr($0, 1, length($0) - length($NF))]++ {print $NF}' "../data/inputFile.txt" | sort | uniq -c | awk '{ printf("%d %s\n", $1, $2) }' > "../results/$1"
