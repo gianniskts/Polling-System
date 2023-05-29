@@ -19,8 +19,9 @@ fi
 # Generating random names, surnames and parties
 for (( i=0; i<$num_lines; i++ ))
 do
-    firstName=$(head /dev/urandom | tr -dc A-Za-z | head -c $((RANDOM%10+3)) | sed -e "s/\b\(.\)/\u\1/g") # random first name with length between 3 and 12
+    # first letter is capitalized, head is used to limit the length of the name, sed is used to capitalize the first letter, tr is used to generate random letters
+    firstName=$(head /dev/urandom | tr -dc A-Za-z | head -c $((RANDOM%10+3)) | sed -e "s/\b\(.\)/\u\1/g") # random first name with length between 3 and 12, 
     surname=$(head /dev/urandom | tr -dc A-Za-z | head -c $((RANDOM%10+3)) | sed -e "s/\b\(.\)/\u\1/g") # random surname with length between 3 and 12
-    party=$(shuf -n 1 $parties_file)
-    echo "$firstName $surname $party" >> "../data/inputFile.txt"
+    party=$(shuf -n 1 $parties_file) # random party from the political parties file
+    echo "$firstName $surname $party" >> "../data/inputFile.txt" # writing the generated data to the input file
 done
