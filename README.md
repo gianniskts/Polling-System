@@ -3,7 +3,7 @@
 This is a polling system consisting of a server and client program. The server allows clients to connect and vote for political parties, while the client program sends votes to the server. Additionally, there are several scripts provided to assist with data generation and result processing.
 
 ## Directory Structure
-
+```txt
 Project2
 │   README.md        // add a readme file to describe the project
 │   Makefile         // add your makefile here
@@ -31,7 +31,7 @@ Project2
 │   │   tallyResultsFile.txt
 │   
 └───.vscode          // Configuration files for Visual Studio Code
-
+```
 
 - `.vscode`: Configuration files for Visual Studio Code.
 - `data`: Directory to store data files.
