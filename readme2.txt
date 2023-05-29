@@ -4,10 +4,10 @@
 
 make
 cd bin
-./poller 5634 8 16 pollLog.txt pollStats.txt
+./poller 5005 10 5 log.txt stat.txt
 
 Από άλλο terminal:
-telnet localhost 5634
+telnet localhost 5005
 
 -----Code Explanation-----
 
@@ -45,12 +45,12 @@ main(int argc, char *argv[]): Αυτό είναι το σημείο εισόδο
 
 make
 cd bin
-./poller 5634 8 16 pollLog.txt pollStats.txt
+./poller 5005 10 5 log.txt stat.txt
 
 Από άλλο terminal:
 make
 cd bin
-./pollSwayer 127.0.0.1 5634 votes.txt
+./pollSwayer 127.0.0.1 5005 inputFile.txt
 
 -----Code Explanation-----
 
@@ -118,7 +118,7 @@ cd scripts
 -----Example Usage-----
 make
 cd scripts
-./processLogFile.sh pollLog.txt
+./processLogFile.sh log.txt
 
 -----Code Explanation-----
 
