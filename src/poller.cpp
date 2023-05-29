@@ -69,7 +69,7 @@ void workerThread(string poll_log_file) {
         if (read(conn_fd, buffer, 255) < 0) // read from socket
             continue;
         string name_vote = trim(string(buffer)); // trim whitespace and newlines from input
-        size_t pos = name_vote.find(' '); // find first space in input
+        size_t pos = name_vote.rfind(' '); // find LAST space in input
         if (pos == string::npos) // if no space is found, input is invalid
             continue;
         string name = name_vote.substr(0, pos); // get name from input
