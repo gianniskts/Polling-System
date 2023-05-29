@@ -1,0 +1,3 @@
+nd 1
+pasok 1
+TOTAL 2
